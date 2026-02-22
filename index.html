@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Расписание Репетиций</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background-color: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+            padding: 10px 0;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            border-top: 1px solid var(--tg-theme-hint-color, #ccc);
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--tg-theme-hint-color, #888);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 10px;
+        }
+        .tab-btn.active {
+            color: var(--tg-theme-button-color, #3390ec);
+        }
+        .content {
+            padding: 20px;
+            padding-bottom: 70px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--tg-theme-hint-color, #eee); }
+        th { color: var(--tg-theme-hint-color, #888); font-size: 12px; text-transform: uppercase; }
+
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: var(--tg-theme-hint-color, #888); }
+        input[type="text"], input[type="datetime-local"] {
+            width: 100%; padding: 12px; border-radius: 8px;
+            border: 1px solid var(--tg-theme-hint-color, #ccc);
+            background-color: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+            box-sizing: border-box; font-size: 16px;
+        }
+        .action-btn {
+            width: 100%; padding: 15px; border: none; border-radius: 12px;
+            background-color: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #fff);
+            font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 15px;
+        }
+        .action-btn.delete { background-color: #e53935; }
+    </style>
+</head>
+<body>
+
+    <div id="tab-schedule" class="content tab-content active">
+        <h2>Ближайшие репетиции</h2>
+        <table>
+            <thead>
+                <tr><th>Дата</th><th>Время</th><th>Группа</th></tr>
+            </thead>
+            <tbody id="schedule-body">
+                <tr><td colspan="3" style="text-align:center">Загрузка...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div id="tab-actions" class="content tab-content">
+        <h2>Управление</h2>
+        <div class="form-group">
+            <label>Название группы</label>
+            <input type="text" id="group-name" placeholder="Например: Рок-группа">
+        </div>
+        <div class="form-group">
+            <label>Дата и время</label>
+            <input type="datetime-local" id="datetime-picker">
+        </div>
+        <button class="action-btn" onclick="sendRequest('add')">➕ Заявка на добавление</button>
+        <button class="action-btn delete" onclick="sendRequest('delete')">🗑 Заявка на удаление</button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('schedule')">📅 Расписание</button>
+        <button class="tab-btn" onclick="switchTab('actions')">⚙️ Функции</button>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            const buttons = document.querySelectorAll('.tab-btn');
+            if(tabName === 'schedule') buttons[0].classList.add('active');
+            else buttons[1].classList.add('active');
+
+            if(tabName === 'schedule') loadSchedule();
+        }
+
+        async function loadSchedule() {
+            try {
+                const response = await fetch('/api/schedule');
+                const data = await response.json();
+                const tbody = document.getElementById('schedule-body');
+                tbody.innerHTML = '';
+
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center">Репетиций нет</td></tr>';
+                    return;
+                }
+
+                data.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+
+                data.forEach(item => {
+                    const dateObj = new Date(item.datetime);
+                    const dateStr = dateObj.toLocaleDateString('ru-RU');
+                    const timeStr = dateObj.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
+
+                    const row = `<tr><td>${dateStr}</td><td>${timeStr}</td><td>${item.group}</td></tr>`;
+                    tbody.innerHTML += row;
+                });
+            } catch (e) {
+                console.error(e);
+                document.getElementById('schedule-body').innerHTML = '<tr><td colspan="3" style="text-align:center; color:red">Ошибка загрузки</td></tr>';
+            }
+        }
+
+        function sendRequest(type) {
+            const group = document.getElementById('group-name').value;
+            const dtInput = document.getElementById('datetime-picker').value;
+
+            if (!group || !dtInput) {
+                tg.showAlert("Заполните все поля!");
+                return;
+            }
+
+            const dateObj = new Date(dtInput);
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const year = dateObj.getFullYear();
+            const hours = String(dateObj.getHours()).padStart(2, '0');
+            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+
+            const formattedTime = `${day}.${month}.${year} ${hours}:${minutes}`;
+            const textData = `${group}\n${formattedTime}`;
+
+            const payload = {
+                action: type,
+                text_data: textData
+            };
+
+            tg.sendData(JSON.stringify(payload));
+        }
+
+        loadSchedule();
+    </script>
+</body>
+</html>
