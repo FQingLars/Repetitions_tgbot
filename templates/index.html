@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Расписание репетиций</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🎸 RepRasp</h1>
+            <p class="subtitle">Расписание репетиций</p>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="schedule">
+                <span class="tab-icon">📅</span>
+                <span class="tab-text">Расписание</span>
+            </button>
+            <button class="tab-btn" data-tab="functions">
+                <span class="tab-icon">⚙️</span>
+                <span class="tab-text">Функции</span>
+            </button>
+            <button class="tab-btn" data-tab="requests">
+                <span class="tab-icon">📨</span>
+                <span class="tab-text">Заявки</span>
+            </button>
+        </nav>
+
+        <main class="content">
+            <div id="schedule" class="tab-content active">
+                <div class="section-header">
+                    <h2>Актуальное расписание</h2>
+                    <button class="refresh-btn" onclick="loadSchedule()">
+                        <span>🔄</span> Обновить
+                    </button>
+                </div>
+
+                <div id="schedule-loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Загрузка расписания...</p>
+                </div>
+
+                <div id="schedule-list" class="schedule-list">
+                </div>
+
+                <div id="schedule-empty" class="empty-state hidden">
+                    <div class="empty-icon">📭</div>
+                    <p>Репетиций пока нет</p>
+                    <button class="btn btn-primary" onclick="switchToFunctions()">
+                        Добавить первую репетицию
+                    </button>
+                </div>
+            </div>
+
+            <div id="functions" class="tab-content">
+                <div class="functions-grid">
+                    <div class="function-card">
+                        <div class="card-header">
+                            <span class="card-icon">➕</span>
+                            <h3>Добавить репетицию</h3>
+                        </div>
+                        <form id="add-form" class="function-form">
+                            <div class="form-group">
+                                <label for="add-group">Название группы</label>
+                                <input
+                                    type="text"
+                                    id="add-group"
+                                    placeholder="Например: Electroach"
+                                    required
+                                >
+                            </div>
+                            <div class="form-group">
+                                <label for="add-datetime">Дата и время</label>
+                                <input
+                                    type="datetime-local"
+                                    id="add-datetime"
+                                    required
+                                >
+                            </div>
+                            <button type="submit" class="btn btn-success btn-full">
+                                <span>✅</span> Добавить запись
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="function-card">
+                        <div class="card-header">
+                            <span class="card-icon">➖</span>
+                            <h3>Удалить репетицию</h3>
+                        </div>
+                        <form id="delete-form" class="function-form">
+                            <div class="form-group">
+                                <label for="delete-group">Название группы</label>
+                                <input
+                                    type="text"
+                                    id="delete-group"
+                                    placeholder="Название группы"
+                                    required
+                                >
+                            </div>
+                            <div class="form-group">
+                                <label for="delete-datetime">Дата и время</label>
+                                <input
+                                    type="datetime-local"
+                                    id="delete-datetime"
+                                    required
+                                >
+                            </div>
+                            <button type="submit" class="btn btn-danger btn-full">
+                                <span>❌</span> Удалить запись
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div id="requests" class="tab-content">
+                <div class="section-header">
+                    <h2>Заявки на модерацию</h2>
+                    <button class="refresh-btn" onclick="loadRequests()">
+                        <span>🔄</span> Обновить
+                    </button>
+                </div>
+
+                <div id="requests-loading" class="loading">
+                    <div class="spinner"></div>
+                    <p>Загрузка заявок...</p>
+                </div>
+
+                <div id="requests-list" class="requests-list">
+                </div>
+
+                <div id="requests-empty" class="empty-state hidden">
+                    <div class="empty-icon">✅</div>
+                    <p>Все заявки обработаны</p>
+                    <p class="small-text">Новых заявок пока нет</p>
+                </div>
+
+                <div id="requests-admin-check" class="empty-state hidden">
+                    <div class="empty-icon">🔒</div>
+                    <p>Доступ только для админов</p>
+                    <p class="small-text">Этот раздел доступен только администраторам</p>
+                </div>
+            </div>
+        </main>
+
+        <div id="toast" class="toast hidden">
+            <span id="toast-message"></span>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

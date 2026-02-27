@@ -1,17 +1,18 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 import os
 
 from db_funcs import *
 from datas import *
-from config import LINK
+from db_autocleaner import *
 
 
-app = Flask(__name__)
-CORS(app, origins=[
-    'https://fqinglars.github.io',
-    LINK
-])
+app = Flask(__name__, static_folder='./static')
+CORS(app)
+
+@app.route('/')
+def main():
+    return render_template("index.html")
 
 @app.route('/api/schedule/list', methods=['GET'])
 def api_schedule_list():
@@ -49,4 +50,12 @@ def api_request_reject(request_id):
     return jsonify({"success": True})
 
 if __name__ == '__main__':
+    if not os.path.isfile("repdatabase.db"):
+        primary_admin = int(input(
+            "Введите chat id первичного админа для добавления его в админы. Узнать его можно, переслав его сообщение этому боту: @GetChatID_IL_BOT.\n"))
+
+        db_init(primary_admin)
+
+
+    autocleaner()
     app.run(host='127.0.0.1', port=5000, debug=True)
